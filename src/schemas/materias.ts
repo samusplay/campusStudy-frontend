@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const materiaSchema = z.object({
-  id: z.string().uuid(),
+  materia_id: z.number().int().positive(),
   nombre: z.string().min(1),
   nrc: z.string().min(1),
-  creadaEn: z.string().datetime(),
+  fecha_creacion: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
 });
 
 export type Materia = z.infer<typeof materiaSchema>;

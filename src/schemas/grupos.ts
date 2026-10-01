@@ -3,33 +3,33 @@ import { z } from "zod";
 export const integranteRolSchema = z.enum(["lider", "miembro"]);
 
 export const integranteSchema = z.object({
-  usuarioId: z.string().uuid(),
+  usuario_id: z.number().int().positive(),
   rol: integranteRolSchema,
-  unidoEn: z.string().datetime(),
+  unido_en: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
 });
 
 export type Integrante = z.infer<typeof integranteSchema>;
 
 export const grupoSchema = z.object({
-  id: z.string().uuid(),
+  grupo_id: z.number().int().positive(),
   nombre: z.string().min(1),
-  materiaId: z.string().uuid(),
-  creadoPor: z.string().uuid(),
+  materia_id: z.number().int().positive(),
+  creado_por: z.number().int().positive(),
   integrantes: z.array(integranteSchema),
-  creadoEn: z.string().datetime(),
+  fecha_creacion: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
 });
 
 export type Grupo = z.infer<typeof grupoSchema>;
 
 export const crearGrupoInputSchema = z.object({
   nombre: z.string().min(1),
-  materiaId: z.string().uuid(),
+  materia_id: z.number().int().positive(),
 });
 
 export type CrearGrupoInput = z.infer<typeof crearGrupoInputSchema>;
 
 export const invitarIntegranteInputSchema = z.object({
-  usuarioId: z.string().uuid(),
+  usuario_id: z.number().int().positive(),
 });
 
 export type InvitarIntegranteInput = z.infer<typeof invitarIntegranteInputSchema>;
