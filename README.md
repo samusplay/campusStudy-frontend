@@ -2,6 +2,7 @@
 
 Interfaz web de **CampusStudy**, plataforma distribuida para la organización de actividades académicas de estudiantes. El Frontend es el punto de interacción con el usuario: integra y presenta la información de los seis microservicios del sistema (usuarios, materias, tareas, grupos, notificaciones y estadísticas) y no administra datos propios.
 
+**Repositorio:** https://github.com/samusplay/campusStudy-frontend (rama `develop`)
 **Equipo Frontend:** Samuel Esteban Rodríguez Vargas · Mariana Castillo Acosta · Julián Camilo Velasco
 **Curso:** Sistemas Distribuidos — UNIMINUTO
 
@@ -27,13 +28,15 @@ Interfaz web de **CampusStudy**, plataforma distribuida para la organización de
 
 | Tecnología | Uso |
 |---|---|
-| [Next.js](https://nextjs.org) (App Router) | Framework de React con renderizado del lado del servidor (SSR) |
-| React | Construcción de la interfaz basada en componentes |
+| [Next.js](https://nextjs.org) 16 (App Router) | Framework de React con renderizado del lado del servidor (SSR) |
+| React 19 | Construcción de la interfaz basada en componentes |
 | TypeScript | Tipado estático |
 | Server Actions | Comunicación con los microservicios desde el servidor |
-| [Zod](https://zod.dev) | Validación de las respuestas según los contratos de interfaz |
-| Tailwind CSS | Estilos |
-| shadcn/ui | Componentes de interfaz reutilizables |
+| [Zod](https://zod.dev) 4 | Validación de las respuestas según los contratos de interfaz |
+| Tailwind CSS 4 | Estilos |
+| shadcn/ui + Radix UI | Componentes de interfaz reutilizables y accesibles |
+| Lucide React | Íconos |
+| Motion | Animaciones de la interfaz |
 
 ## Arquitectura
 
@@ -41,17 +44,17 @@ El Frontend sigue una **arquitectura basada en componentes** con Next.js:
 
 - **Server Components**: se ejecutan en el servidor, consultan los microservicios y envían la vista ya construida al navegador.
 - **Client Components**: se ejecutan en el navegador y manejan la interactividad (formularios, menú lateral, estado).
-- **Server Actions** (`actions/`): concentran las llamadas HTTP a cada microservicio. El token de sesión y las URL de los servicios no quedan expuestos en el navegador.
+- **Server Actions** (`actions/`): concentran las llamadas HTTP al API Gateway. El token de sesión y la URL del gateway no quedan expuestos en el navegador.
 
-El Frontend consume **directamente** cada microservicio mediante API REST (`/api/v1/`, formato JSON), según el contrato de interfaz e integración v1.0.
+El Frontend **no se conecta directamente** a los microservicios: todas sus peticiones pasan por el **API Gateway**, que actúa como punto de entrada único y las enruta al microservicio correspondiente mediante API REST (`/api/v1/`, formato JSON), según el contrato de interfaz e integración v1.0.
 
 ```
-Navegador ──HTTPS──▶ Servidor Next.js ──REST /api/v1──▶ usuarios-service
-                     (rutas, componentes,              materias-service
-                      Server Actions, Zod)             tareas-service
-                                                       grupos-service
-                                                       notificaciones-service
-                                                       estadisticas-service
+Navegador ──HTTPS──▶ Servidor Next.js ──REST──▶ API Gateway ──▶ usuarios-service
+                     (rutas, componentes,                       materias-service
+                      Server Actions, Zod)                      tareas-service
+                                                                grupos-service
+                                                                notificaciones-service
+                                                                estadisticas-service
 ```
 
 ## Estructura del proyecto
@@ -79,10 +82,10 @@ campusstudy/
 
 ## Requisitos previos
 
-- [Node.js](https://nodejs.org) 20 o superior
+- [Node.js](https://nodejs.org) 20.9 o superior (requerido por Next.js 16)
 - npm (incluido con Node.js)
 - Git
-- Los microservicios de CampusStudy en ejecución y accesibles por red (ver [Dependencias](#dependencias))
+- El API Gateway y los microservicios de CampusStudy en ejecución (ver [Dependencias](#dependencias))
 
 Verifica las versiones instaladas:
 
@@ -94,26 +97,22 @@ npm -v
 ## Instalación
 
 ```bash
-git clone [URL del repositorio]
-cd campusstudy
+git clone https://github.com/samusplay/campusStudy-frontend.git
+cd campusStudy-frontend
+git checkout develop
 npm install
 ```
 
 ## Configuración
 
-Crea un archivo `.env.local` en la raíz del proyecto con la URL base de cada microservicio:
+Crea un archivo `.env.local` en la raíz del proyecto con la URL base del API Gateway:
 
 ```env
-# URL base de cada microservicio (sin barra final)
-USUARIOS_SERVICE_URL=http://localhost:8001
-MATERIAS_SERVICE_URL=http://localhost:8002
-TAREAS_SERVICE_URL=http://localhost:8003
-GRUPOS_SERVICE_URL=http://localhost:8004
-NOTIFICACIONES_SERVICE_URL=http://localhost:8005
-ESTADISTICAS_SERVICE_URL=http://localhost:8006
+# URL base del API Gateway (sin barra final)
+API_GATEWAY_URL=http://localhost:8080
 ```
 
-> Estas variables se leen solo en el servidor (Server Actions), por eso **no** llevan el prefijo `NEXT_PUBLIC_`. Ajusta los puertos según dónde esté desplegado cada servicio.
+> El Frontend solo necesita conocer la dirección del API Gateway; es el gateway quien conoce y enruta hacia cada microservicio. La variable se lee únicamente en el servidor (Server Actions), por eso **no** lleva el prefijo `NEXT_PUBLIC_`.
 
 ## Ejecución
 
@@ -125,6 +124,8 @@ ESTADISTICAS_SERVICE_URL=http://localhost:8006
 | `npm run lint` | Revisa el código con ESLint |
 
 ## Vistas y endpoints consumidos
+
+Todas las rutas se consumen a través del API Gateway (`API_GATEWAY_URL` + endpoint), que las dirige al microservicio indicado.
 
 | Vista | Ruta | Microservicio | Endpoints |
 |---|---|---|---|
@@ -168,7 +169,7 @@ npm run lint
 
 ### Pruebas de integración (manuales)
 
-Con los microservicios en ejecución y el Frontend en `npm run dev`:
+Con el API Gateway y los microservicios en ejecución, y el Frontend en `npm run dev`:
 
 1. Iniciar sesión con credenciales válidas → se recibe el token y se redirige a `/admin`.
 2. Iniciar sesión con contraseña incorrecta → se muestra el error de credenciales.
@@ -183,15 +184,23 @@ Con los microservicios en ejecución y el Frontend en `npm run dev`:
 
 Ver `package.json` para la lista completa y las versiones exactas.
 
-- `next`, `react`, `react-dom`
-- `zod`
-- `tailwindcss`
-- Componentes de `shadcn/ui`
+| Paquete | Versión | Uso |
+|---|---|---|
+| `next` | 16.3.5 | Framework |
+| `react`, `react-dom` | 19.2.8 | Interfaz |
+| `zod` | ^4.6.5 | Validación de contratos |
+| `shadcn`, `radix-ui`, `class-variance-authority` | ^4.21.0 / ^1.6.7 / ^0.7.1 | Componentes de interfaz |
+| `lucide-react` | ^1.50.0 | Íconos |
+| `motion`, `tw-animate-css` | ^13.4.0 / ^1.4.0 | Animaciones |
+| `tailwindcss` (dev) | ^4 | Estilos |
+| `typescript` (dev) | ^5 | Tipado |
+| `eslint`, `eslint-config-next` (dev) | ^9 / 16.3.5 | Revisión de código |
 
 ### Servicios que deben estar activos
 
 | Servicio | Necesario para |
 |---|---|
+| API Gateway | Punto de entrada de todas las peticiones (**obligatorio**) |
 | usuarios-service | Inicio de sesión, registro y validación del token (**obligatorio**) |
 | materias-service | Vista de materias |
 | tareas-service | Vistas de tareas y calendario |
@@ -199,4 +208,4 @@ Ver `package.json` para la lista completa y las versiones exactas.
 | notificaciones-service | Centro de notificaciones |
 | estadisticas-service | Panel de inicio |
 
-Sin `usuarios-service` no es posible iniciar sesión; los demás servicios pueden fallar de forma independiente sin detener la plataforma.
+Sin el API Gateway o sin `usuarios-service` no es posible iniciar sesión; los demás servicios pueden fallar de forma independiente sin detener la plataforma.
