@@ -13,9 +13,8 @@ export type Usuario = z.infer<typeof usuarioSchema>;
 
 export const loginInputSchema = z.object({
   email: z.string().email("Debe ser un email válido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string().min(1, "La contraseña es obligatoria"),
 });
-
 export type LoginInput = z.infer<typeof loginInputSchema>;
 
 export const registroInputSchema = z.object({
@@ -63,4 +62,20 @@ export const apiErrorSchema = z.object({
   errors: z.array(errorDetalleSchema).optional(),
 });
 
+//Para manejar los errores
+export const gatewayErrorSchema = z.object({
+  detail: z.string(),
+});
+
 export type ApiError = z.infer<typeof apiErrorSchema>;
+
+
+export const tokenPayloadSchema = z.object({
+  sub: z.string(),
+  nombre: z.string(),
+  email: z.string().email(),
+  rol: z.string(),
+  exp: z.number(),
+});
+
+export type SessionUser = z.infer<typeof tokenPayloadSchema>;

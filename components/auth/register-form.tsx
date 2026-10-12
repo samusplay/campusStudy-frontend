@@ -1,21 +1,47 @@
 "use client";
 
+import { registerAction } from "@/actions/register-action";
 import { Button } from "@/components/ui/button";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { startTransition, useActionState, useEffect } from "react";
+import { toast } from "sonner";
+import ErrorMessage from "../ui/error-message";
+import FieldError from "../ui/field-error";
+
+
+const inputClass =
+  "border-b-2 border-[#121A2B]/15 bg-transparent px-0 py-3 text-lg text-[#121A2B] placeholder:text-[#121A2B]/30 outline-none focus:border-[#E8A33D] aria-[invalid=true]:border-[#C2410C]";
+const labelClass = "text-sm font-medium tracking-[0.15em] text-[#121A2B]/50 uppercase";
 
 export function RegisterForm() {
+  const router = useRouter();
+
+  const [state, dispatch, isPending] = useActionState(registerAction, {
+    errors: [],
+    fieldErrors: {},
+    success: "",
+  });
+
+  useEffect(() => {
+    if (!state.success) return;
+
+    toast.success(state.success);
+    router.push("/login");
+  }, [state.success, router]);
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formData = new FormData(event.currentTarget);
 
-    // TODO: leer los valores del formulario (FormData o estado controlado)
-    // TODO: validar con registroInputSchema.safeParse({ nombre, email, password })
-    // TODO: si falla -> guardar los errores por campo en estado y mostrarlos debajo de cada input
-    // TODO: si pasa -> llamar a POST /api/v1/auth/registro de usuarios-service
-    // TODO: si el backend responde error (ej. correo ya registrado) -> mostrarlo como error general del formulario
+    startTransition(() => {
+      dispatch(formData);
+    });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-10">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-10">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold text-[#121A2B] sm:text-5xl">
           Crea tu cuenta
@@ -25,57 +51,66 @@ export function RegisterForm() {
         </p>
       </div>
 
+      {/* Solo errores generales: correo repetido, servicio caído */}
+      {state.errors.length > 0 && (
+        <div>
+          {state.errors.map((error) => (
+            <ErrorMessage key={error}>{error}</ErrorMessage>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-2">
-          <label htmlFor="nombre" className="text-sm font-medium tracking-[0.15em] text-[#121A2B]/50 uppercase">
-            Nombre
-          </label>
+          <label htmlFor="nombre" className={labelClass}>Nombre</label>
           <input
             id="nombre"
             name="nombre"
             type="text"
             autoComplete="name"
             placeholder="Ana Martínez"
-            className="border-b-2 border-[#121A2B]/15 bg-transparent px-0 py-3 text-lg text-[#121A2B] placeholder:text-[#121A2B]/30 outline-none focus:border-[#E8A33D]"
+            aria-invalid={!!state.fieldErrors.nombre}
+            className={inputClass}
           />
-          {/* Error de "nombre" (se renderiza cuando conectemos la validación) */}
+          <FieldError messages={state.fieldErrors.nombre} />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="email" className="text-sm font-medium tracking-[0.15em] text-[#121A2B]/50 uppercase">
-            Correo
-          </label>
+          <label htmlFor="email" className={labelClass}>Correo</label>
           <input
             id="email"
             name="email"
             type="email"
             autoComplete="email"
             placeholder="ana@uniminuto.edu.co"
-            className="border-b-2 border-[#121A2B]/15 bg-transparent px-0 py-3 text-lg text-[#121A2B] placeholder:text-[#121A2B]/30 outline-none focus:border-[#E8A33D]"
+            aria-invalid={!!state.fieldErrors.email}
+            className={inputClass}
           />
-          {/* Error de "email" (se renderiza cuando conectemos la validación) */}
+          <FieldError messages={state.fieldErrors.email} />
         </div>
 
         <div className="flex flex-col gap-2">
-          <label htmlFor="password" className="text-sm font-medium tracking-[0.15em] text-[#121A2B]/50 uppercase">
-            Contraseña
-          </label>
+          <label htmlFor="password" className={labelClass}>Contraseña</label>
           <input
             id="password"
             name="password"
             type="password"
             autoComplete="new-password"
             placeholder="Mínimo 8 caracteres"
-            className="border-b-2 border-[#121A2B]/15 bg-transparent px-0 py-3 text-lg text-[#121A2B] placeholder:text-[#121A2B]/30 outline-none focus:border-[#E8A33D]"
+            aria-invalid={!!state.fieldErrors.password}
+            className={inputClass}
           />
-          {/* Error de "password" (se renderiza cuando conectemos la validación) */}
+          <FieldError messages={state.fieldErrors.password} />
         </div>
       </div>
 
-      {/* Error general del formulario — ej. "correo ya registrado" que devuelva el backend */}
-
-      <Button type="submit" size="lg" className="h-14 bg-[#E8A33D] text-base font-semibold text-[#121A2B] hover:bg-[#E8A33D]/90">
-        Crear cuenta
+      <Button
+        type="submit"
+        size="lg"
+        disabled={isPending}
+        className="h-14 bg-[#E8A33D] text-base font-semibold text-[#121A2B] hover:bg-[#E8A33D]/90"
+      >
+        {isPending ? "Creando cuenta..." : "Crear cuenta"}
       </Button>
 
       <p className="text-center text-base text-[#121A2B]/60">

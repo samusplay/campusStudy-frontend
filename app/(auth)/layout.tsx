@@ -1,6 +1,11 @@
 import { AuthBrandPanel } from "@/components/ui/auth/auth-brand-panel";
+import { getSessionUser } from "@/src/utils/auth-cookie";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+import { redirect } from "next/navigation";
+export default  async function AuthLayout({ children }: { children: React.ReactNode }) {
+  //sesion del payload
+  const user=await getSessionUser();
+  if(user) redirect("/admin");
   return (
     <div className="flex min-h-screen">
       <AuthBrandPanel />
