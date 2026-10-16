@@ -22,8 +22,12 @@ export const grupoSchema = z.object({
 export type Grupo = z.infer<typeof grupoSchema>;
 
 export const crearGrupoInputSchema = z.object({
-  nombre: z.string().min(1),
-  materia_id: z.number().int().positive(),
+  nombre: z
+    .string()
+    .trim()
+    .min(1, "El nombre es obligatorio")
+    .max(100, "Máximo 100 caracteres"),
+  materia_id: z.coerce.number().int().positive("Selecciona una materia"),
 });
 
 export type CrearGrupoInput = z.infer<typeof crearGrupoInputSchema>;

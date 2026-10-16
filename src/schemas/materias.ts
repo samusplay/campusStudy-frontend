@@ -10,8 +10,8 @@ export const materiaSchema = z.object({
 export type Materia = z.infer<typeof materiaSchema>;
 
 export const crearMateriaInputSchema = z.object({
-  nombre: z.string().min(1),
-  nrc: z.string().min(1),
+  nombre: z.string().min(1, "El nombre es obligatorio").max(100, "Máximo 100 caracteres"),
+  nrc: z.string().min(1, "El NRC es obligatorio").max(20, "Máximo 20 caracteres"),
 });
 
 export type CrearMateriaInput = z.infer<typeof crearMateriaInputSchema>;

@@ -1,6 +1,15 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@theme inline {
+  --color-ink: #121A2B;
+  --color-ink-soft: #1C2740;
+  --color-cream: #F5EFE3;
+  --color-amber: #E8A33D;
+
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-geist-mono);
+}
 
 @custom-variant dark (&:is(.dark *));
 
