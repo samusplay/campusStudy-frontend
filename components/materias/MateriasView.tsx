@@ -1,18 +1,36 @@
 "use client";
 
-import CreateMateriaForm from "@/components/materias/CreateMateriaForm";
+import DeleteMateriaDialog from "@/components/materias/DeleteMateriaDialog";
+import MateriaForm from "@/components/materias/MateriaForm";
 import MateriasList from "@/components/materias/MateriasList";
 import type { Materia } from "@/src/schemas/materias";
 import { Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 
-export default function MateriasView({ materias }: { materias: Materia[] }) {
-  const [abierto, setAbierto] = useState(false);
+// Qué muestra el modal (null = cerrado)
+type Modal =
+  | { modo: "crear" }
+  | { modo: "editar"; materia: Materia }
+  | { modo: "eliminar"; materia: Materia }
+  | null;
 
-  // Funciones estables: el formulario recibe "cerrar" como onSuccess
-  const abrir = useCallback(() => setAbierto(true), []);
-  const cerrar = useCallback(() => setAbierto(false), []);
+const titulos = {
+  crear: "Nueva materia",
+  editar: "Editar materia",
+  eliminar: "Eliminar materia",
+} as const;
+
+export default function MateriasView({ materias }: { materias: Materia[] }) {
+  const [modal, setModal] = useState<Modal>(null);
+
+  // Funciones estables: los formularios reciben "cerrar" como onSuccess
+  const abrirCrear = useCallback(() => setModal({ modo: "crear" }), []);
+  const abrirEditar = useCallback((materia: Materia) => setModal({ modo: "editar", materia }), []);
+  const abrirEliminar = useCallback((materia: Materia) => setModal({ modo: "eliminar", materia }), []);
+  const cerrar = useCallback(() => setModal(null), []);
+
+  const abierto = modal !== null;
 
   // Con el modal abierto: Esc lo cierra y la página de fondo no hace scroll
   useEffect(() => {
@@ -42,7 +60,7 @@ export default function MateriasView({ materias }: { materias: Materia[] }) {
 
           <motion.button
             type="button"
-            onClick={abrir}
+            onClick={abrirCrear}
             whileHover="hover"
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 rounded-full bg-ink py-2.5 pl-3 pr-5 font-semibold text-cream shadow-lg shadow-ink/20 transition-colors hover:bg-amber hover:text-ink"
@@ -59,11 +77,16 @@ export default function MateriasView({ materias }: { materias: Materia[] }) {
         </div>
       )}
 
-      <MateriasList materias={materias} onCrear={abrir} />
+      <MateriasList
+        materias={materias}
+        onCrear={abrirCrear}
+        onEditar={abrirEditar}
+        onEliminar={abrirEliminar}
+      />
 
-      {/* Modal con el formulario */}
+      {/* Modal: crear, editar o eliminar */}
       <AnimatePresence>
-        {abierto && (
+        {modal && (
           <motion.div
             key="fondo"
             initial={{ opacity: 0 }}
@@ -74,15 +97,15 @@ export default function MateriasView({ materias }: { materias: Materia[] }) {
           >
             <motion.div
               key="modal"
-              role="dialog"
+              role={modal.modo === "eliminar" ? "alertdialog" : "dialog"}
               aria-modal="true"
-              aria-label="Nueva materia"
+              aria-label={titulos[modal.modo]}
               onClick={(e) => e.stopPropagation()}
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="relative w-full max-w-md"
+              className={`relative w-full ${modal.modo === "eliminar" ? "max-w-sm" : "max-w-md"}`}
             >
               {/* Botón cerrar flotando en la esquina */}
               <motion.button
@@ -96,7 +119,20 @@ export default function MateriasView({ materias }: { materias: Materia[] }) {
                 <X className="h-4 w-4" />
               </motion.button>
 
-              <CreateMateriaForm onSuccess={cerrar} />
+              {modal.modo === "crear" && <MateriaForm key="nueva" onSuccess={cerrar} />}
+
+              {modal.modo === "editar" && (
+                <MateriaForm key={`editar-${modal.materia.materia_id}`} materia={modal.materia} onSuccess={cerrar} />
+              )}
+
+              {modal.modo === "eliminar" && (
+                <DeleteMateriaDialog
+                  key={`eliminar-${modal.materia.materia_id}`}
+                  materia={modal.materia}
+                  onCancelar={cerrar}
+                  onSuccess={cerrar}
+                />
+              )}
             </motion.div>
           </motion.div>
         )}

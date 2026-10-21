@@ -1,21 +1,20 @@
 "use client";
 
+import MateriaMenu from "@/components/materias/MateriaMenu";
 import type { Materia } from "@/src/schemas/materias";
+import { fechaCorta } from "@/src/utils/fechas";
 import { BookOpen, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-
-const formatoFecha = new Intl.DateTimeFormat("es-CO", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
+import { useState } from "react";
 
 type MateriasListProps = {
   materias: Materia[];
-  onCrear: () => void; // abre el modal del formulario (lo maneja MateriasView)
+  onCrear: () => void;                     // abre el modal en modo crear
+  onEditar: (materia: Materia) => void;    // abre el modal en modo editar
+  onEliminar: (materia: Materia) => void;  // abre la confirmación
 };
 
-export default function MateriasList({ materias, onCrear }: MateriasListProps) {
+export default function MateriasList({ materias, onCrear, onEditar, onEliminar }: MateriasListProps) {
   // Sin materias: bienvenida + botón para crear la primera
   if (materias.length === 0) {
     return (
@@ -56,30 +55,76 @@ export default function MateriasList({ materias, onCrear }: MateriasListProps) {
     <motion.ul layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <AnimatePresence initial={false}>
         {materias.map((materia, i) => (
-          <motion.li
+          <MateriaCard
             key={materia.materia_id}
-            layout
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 300, damping: 26, delay: i * 0.04 }}
-            whileHover={{ y: -4 }}
-            className="group flex gap-4 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg hover:shadow-ink/10"
-          >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ink text-amber transition-colors group-hover:bg-amber group-hover:text-ink">
-              <BookOpen className="h-6 w-6" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate font-display text-lg font-bold text-ink">{materia.nombre}</p>
-              <p className="font-mono text-xs tracking-wider text-ink/50">NRC {materia.nrc}</p>
-              <p className="mt-2 text-xs text-ink/40">
-                Creada el {formatoFecha.format(new Date(materia.fecha_creacion))}
-              </p>
-            </div>
-          </motion.li>
+            materia={materia}
+            indice={i}
+            onEditar={onEditar}
+            onEliminar={onEliminar}
+          />
         ))}
       </AnimatePresence>
     </motion.ul>
+  );
+}
+
+/* ---------- Tarjeta ---------- */
+
+type MateriaCardProps = {
+  materia: Materia;
+  indice: number;
+  onEditar: (materia: Materia) => void;
+  onEliminar: (materia: Materia) => void;
+};
+
+function MateriaCard({ materia, indice, onEditar, onEliminar }: MateriaCardProps) {
+  // Hover o foco dentro de la tarjeta → aparecen editar / eliminar
+  const [activo, setActivo] = useState(false);
+
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 16, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      // Al eliminar: se encoge y se desenfoca mientras las demás se reacomodan
+      exit={{ opacity: 0, scale: 0.85, filter: "blur(4px)", transition: { duration: 0.25 } }}
+      transition={{ type: "spring", stiffness: 300, damping: 26, delay: indice * 0.04 }}
+      whileHover={{ y: -4 }}
+      onHoverStart={() => setActivo(true)}
+      onHoverEnd={() => setActivo(false)}
+      onFocus={() => setActivo(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setActivo(false);
+      }}
+      className="group relative flex gap-4 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg hover:shadow-ink/10"
+    >
+      {/* Editar / Eliminar */}
+      <div className="absolute top-3 right-3">
+        <MateriaMenu
+          visible={activo}
+          nombre={materia.nombre}
+          onEditar={() => onEditar(materia)}
+          onEliminar={() => onEliminar(materia)}
+        />
+      </div>
+
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ink text-amber transition-colors group-hover:bg-amber group-hover:text-ink">
+        <BookOpen className="h-6 w-6" />
+      </div>
+
+      {/* pr-20: deja espacio para los dos botones y que el nombre no quede debajo */}
+      <div className="min-w-0 flex-1 pr-20">
+        <p className="truncate font-display text-lg font-bold text-ink">{materia.nombre}</p>
+        <p className="font-mono text-xs tracking-wider text-ink/50">NRC {materia.nrc}</p>
+
+        {materia.descripcion && (
+          <p className="mt-2 line-clamp-2 text-sm text-ink/60" title={materia.descripcion}>
+            {materia.descripcion}
+          </p>
+        )}
+
+        <p className="mt-2 text-xs text-ink/40">Creada el {fechaCorta(materia.fecha_creacion)}</p>
+      </div>
+    </motion.li>
   );
 }

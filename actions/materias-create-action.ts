@@ -19,6 +19,7 @@ export async function createMateriaAction(
   const materiaData = {
     nombre: formData.get("nombre"),
     nrc: formData.get("nrc"),
+    descripcion: formData.get("descripcion") ?? "",
   };
 
   // 1. Validar: errores agrupados por campo
