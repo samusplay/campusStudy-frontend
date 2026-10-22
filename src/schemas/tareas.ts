@@ -1,121 +1,78 @@
 import { z } from "zod";
 
+// --- Valores fijos (iguales al backend) ---
 export const tareaPrioridadSchema = z.enum(["baja", "media", "alta"]);
+export const tareaEstadoSchema = z.enum(["pendiente", "en_progreso", "completada", "cancelada"]);
 
-export const tareaEstadoSchema = z.enum([
-  "pendiente",
-  "en_progreso",
-  "completada",
-  "cancelada",
-]);
+export type TareaPrioridad = z.infer<typeof tareaPrioridadSchema>;
+export type TareaEstado = z.infer<typeof tareaEstadoSchema>;
 
+// --- Una tarea, tal como la devuelven GET /tareas y POST /tareas ---
 export const tareaSchema = z.object({
   tarea_id: z.number().int().positive(),
-  titulo: z.string().min(1).max(150),
-  descripcion: z.string().max(1000).optional(),
-  usuario_id: z.number().int().positive(),
+  titulo: z.string().min(1),
+  descripcion: z.string().nullable(),
   materia_id: z.number().int().positive(),
-  grupo_id: z.number().int().positive().nullable().optional(),
   fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  hora_entrega: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  prioridad: tareaPrioridadSchema.optional(),
+  hora_entrega: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
+  prioridad: tareaPrioridadSchema,
   estado: tareaEstadoSchema,
-  fecha_creacion: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
-  fecha_actualizacion: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
 });
 
 export type Tarea = z.infer<typeof tareaSchema>;
 
+// GET /tareas → arreglo plano
+export const tareasListadoSchema = z.array(tareaSchema);
+
+// --- Formulario de crear ---
 export const crearTareaInputSchema = z.object({
-  titulo: z.string().min(1).max(150),
-  descripcion: z.string().max(1000).optional(),
-  usuario_id: z.number().int().positive(),
-  materia_id: z.number().int().positive(),
-  grupo_id: z.number().int().positive().nullable().optional(),
-  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  hora_entrega: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  prioridad: tareaPrioridadSchema.optional(),
+  titulo: z.string().trim().min(1, "El título es obligatorio").max(150, "Máximo 150 caracteres"),
+  descripcion: z
+    .string()
+    .trim()
+    .max(1000, "Máximo 1000 caracteres")
+    .transform((valor) => (valor === "" ? null : valor)),
+  materia_id: z.coerce.number().int().positive("Selecciona una materia"),
+  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha de entrega es obligatoria"),
+  hora_entrega: z
+    .string()
+    .regex(/^(\d{2}:\d{2})?$/, "La hora debe tener el formato HH:MM")
+    .transform((valor) => (valor === "" ? null : valor)),
+  prioridad: tareaPrioridadSchema.default("media"),
 });
 
 export type CrearTareaInput = z.infer<typeof crearTareaInputSchema>;
 
-export const actualizarTareaInputSchema = z.object({
-  titulo: z.string().min(1).max(150).optional(),
-  descripcion: z.string().max(1000).optional(),
-  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  hora_entrega: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  prioridad: tareaPrioridadSchema.optional(),
-});
-
-export type ActualizarTareaInput = z.infer<typeof actualizarTareaInputSchema>;
-
-export const actualizarEstadoTareaInputSchema = z.object({
+// --- Cambiar estado (botones Empezar / Completar) ---
+export const cambiarEstadoInputSchema = z.object({
+  tarea_id: z.coerce.number().int().positive("Tarea inválida"),
   estado: tareaEstadoSchema,
 });
 
-export type ActualizarEstadoTareaInput = z.infer<typeof actualizarEstadoTareaInputSchema>;
+export type CambiarEstadoInput = z.infer<typeof cambiarEstadoInputSchema>;
 
-export const tareaListadoItemSchema = z.object({
+// PUT /tareas/{id}/estado → solo lo que cambió
+export const cambioEstadoSchema = z.object({
   tarea_id: z.number().int().positive(),
-  titulo: z.string(),
-  materia_id: z.number().int().positive(),
-  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   estado: tareaEstadoSchema,
+  fecha_actualizacion: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/),
 });
 
-export type TareaListadoItem = z.infer<typeof tareaListadoItemSchema>;
+export type CambioEstado = z.infer<typeof cambioEstadoSchema>;
 
-export const tareasListadoSchema = z.object({
-  total: z.number().int().nonnegative(),
-  pagina: z.number().int().positive(),
-  tamano: z.number().int().positive(),
-  tareas: z.array(tareaListadoItemSchema),
+// --- Eliminar (cancelar): solo el id ---
+export const eliminarTareaInputSchema = cambiarEstadoInputSchema.pick({ tarea_id: true });
+
+// --- Errores del servicio de tareas: { exito: false, error: { …, errores } } ---
+export const tareaErrorSchema = z.object({
+  exito: z.literal(false),
+  error: z.object({
+    codigo: z.number().int(),
+    tipo: z.string(),
+    mensaje: z.string(),
+    errores: z
+      .array(z.object({ campo: z.string(), mensaje: z.string() }))
+      .nullable()
+      .optional(),
+  }),
 });
-
-export type TareasListado = z.infer<typeof tareasListadoSchema>;
-
-export const resumenTareasSchema = z.object({
-  usuario_id: z.number().int().positive(),
-  total: z.number().int().nonnegative(),
-  pendientes: z.number().int().nonnegative(),
-  en_progreso: z.number().int().nonnegative(),
-  completadas: z.number().int().nonnegative(),
-  canceladas: z.number().int().nonnegative(),
-  vencidas: z.number().int().nonnegative(),
-});
-
-export type ResumenTareas = z.infer<typeof resumenTareasSchema>;
-
-export const errorTareasSchema = z.object({
-  codigo: z.number().int(),
-  tipo: z.string(),
-  mensaje: z.string(),
-});
-
-export type ErrorTareas = z.infer<typeof errorTareasSchema>;
-
-export function respuestaTareasSchema<T extends z.ZodTypeAny>(datosSchema: T) {
-  return z.discriminatedUnion("exito", [
-    z.object({
-      exito: z.literal(true),
-      datos: datosSchema,
-      mensaje: z.string(),
-    }),
-    z.object({
-      exito: z.literal(false),
-      error: errorTareasSchema,
-    }),
-  ]);
-}
-
-export const crearTareaResponseSchema = respuestaTareasSchema(tareaSchema);
-export const obtenerTareaResponseSchema = respuestaTareasSchema(tareaSchema);
-export const actualizarTareaResponseSchema = respuestaTareasSchema(tareaSchema);
-export const listarTareasResponseSchema = respuestaTareasSchema(tareasListadoSchema);
-export const cambiarEstadoResponseSchema = respuestaTareasSchema(
-  z.object({ tarea_id: z.number().int().positive(), estado: tareaEstadoSchema })
-);
-export const cancelarTareaResponseSchema = respuestaTareasSchema(
-  z.object({ tarea_id: z.number().int().positive(), estado: z.literal("cancelada") })
-);
-export const resumenTareasResponseSchema = respuestaTareasSchema(resumenTareasSchema);

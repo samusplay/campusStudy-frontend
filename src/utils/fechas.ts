@@ -31,3 +31,8 @@ export function fechaHora(iso: string) {
   const sufijo = h < 12 ? "a. m." : "p. m.";
   return `${fechaCorta(iso)}, ${hora12}:${String(m).padStart(2, "0")} ${sufijo}`;
 }
+
+/** "2026-10-22": hoy en Colombia. Llamarla SOLO en el servidor y pasarla como prop. */
+export function hoyColombia() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+}
