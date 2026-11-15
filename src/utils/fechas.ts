@@ -36,3 +36,32 @@ export function fechaHora(iso: string) {
 export function hoyColombia() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
 }
+
+/** "15 de nov de 2026, 5:10 p. m." — fecha ISO en UTC mostrada en hora de Colombia (sin Intl: igual en servidor y navegador) */
+export function fechaHoraColombia(isoUtc: string) {
+  // Colombia es UTC-5 todo el año (no tiene horario de verano): se restan 5 h y se leen los campos en UTC
+  const d = new Date(new Date(isoUtc).getTime() - 5 * 60 * 60 * 1000);
+  const h = d.getUTCHours();
+  const m = d.getUTCMinutes();
+  const hora12 = h % 12 || 12;
+  const sufijo = h < 12 ? "a. m." : "p. m.";
+  return `${d.getUTCDate()} de ${MESES_CORTOS[d.getUTCMonth()]} de ${d.getUTCFullYear()}, ${hora12}:${String(m).padStart(2, "0")} ${sufijo}`;
+}
+
+/** "hace un momento", "hace 5 minutos", "ayer"… `ahora` viene del servidor para que no cambie al hidratar */
+export function haceCuanto(isoUtc: string, ahora: number) {
+  const segundos = Math.max(0, Math.round((ahora - new Date(isoUtc).getTime()) / 1000));
+  if (segundos < 60) return "hace un momento";
+
+  const minutos = Math.floor(segundos / 60);
+  if (minutos < 60) return minutos === 1 ? "hace 1 minuto" : `hace ${minutos} minutos`;
+
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return horas === 1 ? "hace 1 hora" : `hace ${horas} horas`;
+
+  const dias = Math.floor(horas / 24);
+  if (dias === 1) return "ayer";
+  if (dias < 7) return `hace ${dias} días`;
+
+  return fechaHoraColombia(isoUtc).split(",")[0]; // más de una semana: "8 de nov de 2026"
+}

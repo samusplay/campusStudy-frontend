@@ -1,44 +1,32 @@
 import { z } from "zod";
 
+// ObjectId de Mongo: 24 caracteres hexadecimales
+const OBJECT_ID = /^[a-f0-9]{24}$/;
+
+// --- Una notificación, tal como la devuelve GET /notificaciones/me ---
 export const notificacionSchema = z.object({
-  notificacion_id: z.number().int().positive(),
-  usuario_id: z.number().int().positive(),
+  id: z.string().regex(OBJECT_ID),
   tipo: z.string(),
   titulo: z.string().min(1),
   mensaje: z.string().min(1),
-  fecha_creacion: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  estado: z.string(),
-  referencia_id: z.number().int().positive().optional(),
+  leida: z.boolean(),
+  referencia_id: z.number().int().positive().nullable().optional(), // ej. el id de la tarea
+  fecha_creacion: z.string().datetime(), // ISO en UTC: "2026-11-15T01:15:05.075Z"
 });
 
 export type Notificacion = z.infer<typeof notificacionSchema>;
 
+// GET /notificaciones/me → las 50 más recientes, de la más nueva a la más vieja
 export const notificacionesListadoSchema = z.array(notificacionSchema);
 
-export const crearNotificacionInputSchema = z.object({
-  usuario_id: z.number().int().positive(),
-  tipo: z.string(),
-  titulo: z.string().min(1),
-  mensaje: z.string().min(1),
-  fecha_creacion: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  estado: z.string(),
-  referencia_id: z.number().int().positive().optional(),
+// --- Marcar como leída (PATCH /notificaciones/{id}/leida → 204) ---
+export const marcarLeidaInputSchema = z.object({
+  id: z.string().regex(OBJECT_ID, "Notificación inválida"),
 });
 
-export type CrearNotificacionInput = z.infer<typeof crearNotificacionInputSchema>;
-
-export const crearNotificacionResponseSchema = z.object({
-  codigo: z.literal(201),
-  mensaje: z.string(),
-  fecha_creacion: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+// --- Errores de NestJS: { message, error, statusCode } ---
+export const notificacionErrorSchema = z.object({
+  statusCode: z.number().int(),
+  message: z.union([z.string(), z.array(z.string())]), // el ValidationPipe manda una lista
+  error: z.string().optional(),
 });
-
-export type CrearNotificacionResponse = z.infer<typeof crearNotificacionResponseSchema>;
-
-export const errorNotificacionesSchema = z.object({
-  codigo: z.number().int(),
-  mensaje: z.string(),
-  detalle: z.string().optional(),
-});
-
-export type ErrorNotificaciones = z.infer<typeof errorNotificacionesSchema>;

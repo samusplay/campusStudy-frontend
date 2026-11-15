@@ -91,9 +91,10 @@ export async function createTareaAction(
     };
   }
 
-  // 5. Éxito
+    // 5. Éxito
   const tarea = tareaSchema.parse(json);
   updateTag("tareas");
+  updateTag("notificaciones"); // tareas-service envía la carta "Nueva tarea creada"
 
   return { errors: {}, error: "", success: `Tarea "${tarea.titulo}" creada` };
 }
