@@ -10,6 +10,7 @@ type TareasListProps = {
   nombresMaterias: ReadonlyMap<number, string>;
   hoy: string;                          // "YYYY-MM-DD" del servidor
   onCrear?: () => void;                 // si no viene, no se muestra el botón del estado vacío
+  onEditar: (tarea: Tarea) => void;
   onEliminar: (tarea: Tarea) => void;
   mensajeVacio?: string;
 };
@@ -19,6 +20,7 @@ export default function TareasList({
   nombresMaterias,
   hoy,
   onCrear,
+  onEditar,
   onEliminar,
   mensajeVacio = "Aquí aparecerán las tareas que agregues.",
 }: TareasListProps) {
@@ -74,6 +76,7 @@ export default function TareasList({
             materiaNombre={nombresMaterias.get(tarea.materia_id) ?? `Materia #${tarea.materia_id}`}
             indice={indice}
             hoy={hoy}
+            onEditar={onEditar}
             onEliminar={onEliminar}
           />
         ))}

@@ -20,7 +20,13 @@ const FILTROS: { valor: Filtro; etiqueta: string }[] = [
 ];
 
 // Qué muestra el modal (null = cerrado)
-type Modal = { modo: "crear" } | { modo: "eliminar"; tarea: Tarea } | null;
+type Modal =
+  | { modo: "crear" }
+  | { modo: "editar"; tarea: Tarea }
+  | { modo: "eliminar"; tarea: Tarea }
+  | null;
+
+const ETIQUETA_MODAL = { crear: "Nueva tarea", editar: "Editar tarea", eliminar: "Eliminar tarea" } as const;
 
 type TareasViewProps = {
   tareas: Tarea[];
@@ -36,6 +42,7 @@ export default function TareasView({ tareas, materias, hoy }: TareasViewProps) {
 
   // Estables: TareaForm y el diálogo los usan en las dependencias de su useEffect
   const abrirCrear = useCallback(() => setModal({ modo: "crear" }), []);
+  const abrirEditar = useCallback((tarea: Tarea) => setModal({ modo: "editar", tarea }), []);
   const abrirEliminar = useCallback((tarea: Tarea) => setModal({ modo: "eliminar", tarea }), []);
   const cerrar = useCallback(() => setModal(null), []);
 
@@ -150,11 +157,12 @@ export default function TareasView({ tareas, materias, hoy }: TareasViewProps) {
         nombresMaterias={nombresMaterias}
         hoy={hoy}
         onCrear={filtro === "todas" && puedeCrear ? abrirCrear : undefined}
+        onEditar={abrirEditar}
         onEliminar={abrirEliminar}
         mensajeVacio={filtro === "todas" ? undefined : "No hay tareas en este filtro."}
       />
 
-      {/* ---------- Modal: crear o eliminar ---------- */}
+      {/* ---------- Modal: crear, editar o eliminar ---------- */}
       <AnimatePresence>
         {modal && (
           <motion.div
@@ -170,7 +178,7 @@ export default function TareasView({ tareas, materias, hoy }: TareasViewProps) {
               <motion.div
                 role={modal.modo === "eliminar" ? "alertdialog" : "dialog"}
                 aria-modal="true"
-                aria-label={modal.modo === "eliminar" ? "Eliminar tarea" : "Nueva tarea"}
+                aria-label={ETIQUETA_MODAL[modal.modo]}
                 onClick={(e) => e.stopPropagation()}
                 initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 30 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -189,9 +197,22 @@ export default function TareasView({ tareas, materias, hoy }: TareasViewProps) {
                   <X className="size-4" />
                 </motion.button>
 
-                {modal.modo === "crear" ? (
+                {modal.modo === "crear" && (
                   <TareaForm materias={materias} hoy={hoy} onCancelar={cerrar} onSuccess={cerrar} />
-                ) : (
+                )}
+
+                {modal.modo === "editar" && (
+                  <TareaForm
+                    key={modal.tarea.tarea_id}
+                    materias={materias}
+                    hoy={hoy}
+                    tarea={modal.tarea}
+                    onCancelar={cerrar}
+                    onSuccess={cerrar}
+                  />
+                )}
+
+                {modal.modo === "eliminar" && (
                   <EliminarTareaDialog key={modal.tarea.tarea_id} tarea={modal.tarea} onCancelar={cerrar} onSuccess={cerrar} />
                 )}
               </motion.div>

@@ -1,40 +1,56 @@
 "use client";
 
-import { createTareaAction, type ActionStateType } from "@/actions/create-tarea-action";
+import { createTareaAction } from "@/actions/create-tarea-action";
+import { updateTareaAction, type ActionStateType } from "@/actions/update-tarea-action";
 import MateriaSelect from "@/components/grupos/MateriaSelect";
 import ErrorMessage from "@/components/ui/error-message";
 import FieldError from "@/components/ui/field-error";
 import type { Materia } from "@/src/schemas/materias";
-import type { TareaPrioridad } from "@/src/schemas/tareas";
+import type { Tarea, TareaPrioridad } from "@/src/schemas/tareas";
+import { Users } from "lucide-react";
 import { AnimatePresence, motion, useAnimate, useReducedMotion, type Variants } from "motion/react";
 import { useActionState, useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 
 const initialState: ActionStateType = { errors: {}, error: "", success: "" };
 
+// Crear y editar comparten la forma del estado: el formulario usa una u otra
+type Accion = (estado: ActionStateType, formData: FormData) => Promise<ActionStateType>;
+
 const desplegar: Variants = {
   oculto: { opacity: 0, height: 0 },
   visible: { opacity: 1, height: "auto", transition: { duration: 0.2 } },
 };
+
 const PRIORIDADES: { valor: TareaPrioridad; etiqueta: string; activo: string }[] = [
   { valor: "baja", etiqueta: "Baja", activo: "bg-white text-ink/70" },
   { valor: "media", etiqueta: "Media", activo: "bg-amber/30 text-ink" },
   { valor: "alta", etiqueta: "Alta", activo: "bg-ink text-amber" },
 ];
+
 type TareaFormProps = {
   materias: Materia[];
-  hoy: string;            // "YYYY-MM-DD" del servidor → mínimo del input de fecha
+  hoy: string;            // "YYYY-MM-DD" del servidor → mínimo de la fecha al crear
+  tarea?: Tarea;          // si viene, el formulario edita esa tarea
   onCancelar: () => void;
   onSuccess?: () => void;
 };
 
-export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: TareaFormProps) {
-  const [state, formAction, isPending] = useActionState(createTareaAction, initialState);
-  const [materiaId, setMateriaId] = useState<number | null>(materias[0]?.materia_id ?? null);
-  const [prioridad, setPrioridad] = useState<TareaPrioridad>("media");
+export default function TareaForm({ materias, hoy, tarea, onCancelar, onSuccess }: TareaFormProps) {
+  const editando = tarea !== undefined;
+  const deGrupo = tarea?.grupo_id != null;
+
+  const accion: Accion = editando ? updateTareaAction : createTareaAction;
+  const [state, formAction, isPending] = useActionState(accion, initialState);
+
+  const [materiaId, setMateriaId] = useState<number | null>(tarea?.materia_id ?? materias[0]?.materia_id ?? null);
+  const [prioridad, setPrioridad] = useState<TareaPrioridad>(tarea?.prioridad ?? "media");
   const [scope, animate] = useAnimate();
   const reduceMotion = useReducedMotion();
   const uid = useId();
+
+  const nombreMateria =
+    materias.find((m) => m.materia_id === tarea?.materia_id)?.nombre ?? `Materia #${tarea?.materia_id}`;
 
   useEffect(() => {
     if (state.success) {
@@ -53,16 +69,26 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
 
   return (
     <form ref={scope} action={formAction} noValidate className="rounded-3xl bg-white p-6 shadow-2xl shadow-ink/20 sm:p-8">
+      {/* Al editar: qué tarea es y a qué grupo pertenece (se reenvía tal cual) */}
+      {editando && (
+        <>
+          <input type="hidden" name="tarea_id" value={tarea.tarea_id} />
+          <input type="hidden" name="grupo_id" value={tarea.grupo_id ?? ""} />
+        </>
+      )}
+
       {/* Título */}
       <div className="mb-6">
-        <h2 id="tarea-form-title" className="font-display text-2xl font-bold text-ink">Nueva tarea</h2>
+        <h2 className="font-display text-2xl font-bold text-ink">{editando ? "Editar tarea" : "Nueva tarea"}</h2>
         <motion.span
           initial={{ width: 0 }}
           animate={{ width: 56 }}
           transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 20 }}
           className="mt-2 block h-1 rounded-full bg-amber"
         />
-        <p className="mt-3 text-sm text-ink/55">Completa los datos de tu entrega.</p>
+        <p className="mt-3 text-sm text-ink/55">
+          {editando ? "Ajusta los datos de tu entrega." : "Completa los datos de tu entrega."}
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -70,6 +96,7 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
           <input
             id="tarea-titulo"
             name="titulo"
+            defaultValue={tarea?.titulo}
             maxLength={150}
             autoFocus
             autoComplete="off"
@@ -82,20 +109,37 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
         </Campo>
 
         <Campo id="tarea-materia" label="Materia" errores={state.errors.materia_id}>
-          <MateriaSelect
-            id="tarea-materia"
-            materias={materias}
-            value={materiaId}
-            onChange={setMateriaId}
-            invalid={!!state.errors.materia_id}
-            disabled={isPending}
-          />
+          {deGrupo ? (
+            // Tarea de grupo: la materia la define el grupo (el backend exige que coincidan)
+            <motion.div
+              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between gap-3 rounded-xl border border-ink/10 bg-ink/5 px-3.5 py-3"
+            >
+              <input type="hidden" name="materia_id" value={tarea.materia_id} />
+              <span className="truncate font-medium text-ink/70">{nombreMateria}</span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber/20 px-2.5 py-1 text-xs font-bold text-ink">
+                <Users className="size-3.5" aria-hidden="true" />
+                Definida por el grupo
+              </span>
+            </motion.div>
+          ) : (
+            <MateriaSelect
+              id="tarea-materia"
+              materias={materias}
+              value={materiaId}
+              onChange={setMateriaId}
+              invalid={!!state.errors.materia_id}
+              disabled={isPending}
+            />
+          )}
         </Campo>
 
         <Campo id="tarea-descripcion" label="Descripción" opcional errores={state.errors.descripcion}>
           <textarea
             id="tarea-descripcion"
             name="descripcion"
+            defaultValue={tarea?.descripcion ?? ""}
             maxLength={1000}
             rows={3}
             placeholder="Agrega detalles que te ayuden a recordar la tarea"
@@ -110,7 +154,8 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
               id="tarea-fecha"
               name="fecha_entrega"
               type="date"
-              min={hoy}
+              defaultValue={tarea?.fecha_entrega}
+              min={editando ? undefined : hoy} // al editar se puede corregir una tarea vencida
               disabled={isPending}
               aria-invalid={!!state.errors.fecha_entrega}
               aria-describedby={state.errors.fecha_entrega ? "tarea-fecha-error" : undefined}
@@ -123,6 +168,7 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
               id="tarea-hora"
               name="hora_entrega"
               type="time"
+              defaultValue={tarea?.hora_entrega ?? ""}
               disabled={isPending}
               className={claseInput(!!state.errors.hora_entrega)}
             />
@@ -160,7 +206,7 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
           </div>
         </div>
 
-        {/* Error general (503, conexión…) */}
+        {/* Error general (404, 409, 503, conexión…) */}
         <AnimatePresence>
           {state.error && (
             <motion.div variants={desplegar} initial="oculto" animate="visible" exit="oculto" className="overflow-hidden">
@@ -181,13 +227,15 @@ export default function TareaForm({ materias, hoy, onCancelar, onSuccess }: Tare
         </button>
         <motion.button
           type="submit"
-          disabled={isPending || materias.length === 0}
+          disabled={isPending || (!editando && materias.length === 0)}
           whileTap={reduceMotion ? undefined : { scale: 0.98 }}
           className="group relative overflow-hidden rounded-xl bg-ink px-4 py-3 font-semibold text-cream disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="absolute inset-0 translate-y-full bg-amber transition-transform duration-300 ease-out group-hover:translate-y-0 group-disabled:translate-y-full" />
           <span className="relative transition-colors duration-300 group-hover:text-ink group-disabled:text-cream">
-            {isPending ? "Creando…" : "Crear tarea"}
+            {editando
+              ? isPending ? "Guardando…" : "Guardar cambios"
+              : isPending ? "Creando…" : "Crear tarea"}
           </span>
         </motion.button>
       </div>

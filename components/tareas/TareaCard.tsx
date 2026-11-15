@@ -3,7 +3,7 @@
 import { cambiarEstadoTareaAction, type ActionStateType } from "@/actions/cambiar-estado-tarea-action";
 import type { Tarea, TareaEstado, TareaPrioridad } from "@/src/schemas/tareas";
 import { fechaCorta } from "@/src/utils/fechas";
-import { CalendarDays, Check, Clock3, Play, Trash2 } from "lucide-react";
+import { CalendarDays, Check, Clock3, Pencil, Play, Trash2, Users } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useActionState, useEffect } from "react";
 import { toast } from "sonner";
@@ -35,15 +35,20 @@ type TareaCardProps = {
   materiaNombre: string;
   indice: number;
   hoy: string;                          // "YYYY-MM-DD" del servidor
+  onEditar: (tarea: Tarea) => void;     // abre el formulario de editar en TareasView
   onEliminar: (tarea: Tarea) => void;   // abre la confirmación en TareasView
 };
 
-export default function TareaCard({ tarea, materiaNombre, indice, hoy, onEliminar }: TareaCardProps) {
+export default function TareaCard({ tarea, materiaNombre, indice, hoy, onEditar, onEliminar }: TareaCardProps) {
   const [state, formAction, isPending] = useActionState(cambiarEstadoTareaAction, initialState);
   const reduceMotion = useReducedMotion();
 
   const completada = tarea.estado === "completada";
   const siguiente = SIGUIENTE[tarea.estado];
+  const deGrupo = tarea.grupo_id !== null;
+
+  // El backend responde 409 si se edita una tarea completada o cancelada
+  const editable = tarea.estado === "pendiente" || tarea.estado === "en_progreso";
 
   // Comparar textos "YYYY-MM-DD" funciona igual que comparar fechas, y sin new Date()
   const vencida = !completada && tarea.fecha_entrega < hoy;
@@ -93,7 +98,7 @@ export default function TareaCard({ tarea, materiaNombre, indice, hoy, onElimina
         <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink/60">{tarea.descripcion}</p>
       )}
 
-      {/* Fecha, hora y prioridad */}
+      {/* Fecha, hora, prioridad y grupo */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span
           className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
@@ -114,6 +119,13 @@ export default function TareaCard({ tarea, materiaNombre, indice, hoy, onElimina
         <span className={`rounded-lg px-2.5 py-1.5 text-xs font-bold capitalize ${PRIORIDAD[tarea.prioridad]}`}>
           Prioridad {tarea.prioridad}
         </span>
+
+        {deGrupo && (
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber/15 px-2.5 py-1.5 text-xs font-bold text-ink">
+            <Users className="size-3.5" aria-hidden="true" />
+            Grupo
+          </span>
+        )}
       </div>
 
       {/* Acciones */}
@@ -159,6 +171,20 @@ export default function TareaCard({ tarea, materiaNombre, indice, hoy, onElimina
         )}
 
         <span className="flex-1" />
+
+        {editable && (
+          <motion.button
+            type="button"
+            onClick={() => onEditar(tarea)}
+            aria-label={`Editar tarea ${tarea.titulo}`}
+            whileHover={reduceMotion ? undefined : { rotate: -15, scale: 1.08 }}
+            whileTap={reduceMotion ? undefined : { scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            className="grid size-9 place-items-center rounded-lg text-ink/50 transition-colors hover:bg-amber/20 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber"
+          >
+            <Pencil className="size-4" aria-hidden="true" />
+          </motion.button>
+        )}
 
         {!completada && (
           <button

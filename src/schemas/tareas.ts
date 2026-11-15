@@ -7,14 +7,19 @@ export const tareaEstadoSchema = z.enum(["pendiente", "en_progreso", "completada
 export type TareaPrioridad = z.infer<typeof tareaPrioridadSchema>;
 export type TareaEstado = z.infer<typeof tareaEstadoSchema>;
 
-// --- Una tarea, tal como la devuelven GET /tareas y POST /tareas ---
+// --- Formatos compartidos ---
+const FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/; // 00:00 a 23:59
+
+// --- Una tarea, tal como la devuelven GET, POST y PUT /tareas ---
 export const tareaSchema = z.object({
   tarea_id: z.number().int().positive(),
   titulo: z.string().min(1),
   descripcion: z.string().nullable(),
   materia_id: z.number().int().positive(),
-  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  hora_entrega: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
+  grupo_id: z.number().int().positive().nullable(), // null = tarea personal
+  fecha_entrega: z.string().regex(FECHA),
+  hora_entrega: z.string().regex(HORA).nullable(),
   prioridad: tareaPrioridadSchema,
   estado: tareaEstadoSchema,
 });
@@ -33,15 +38,29 @@ export const crearTareaInputSchema = z.object({
     .max(1000, "Máximo 1000 caracteres")
     .transform((valor) => (valor === "" ? null : valor)),
   materia_id: z.coerce.number().int().positive("Selecciona una materia"),
-  fecha_entrega: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha de entrega es obligatoria"),
+  fecha_entrega: z.string().regex(FECHA, "La fecha de entrega es obligatoria"),
   hora_entrega: z
     .string()
-    .regex(/^(\d{2}:\d{2})?$/, "La hora debe tener el formato HH:MM")
+    .refine((valor) => valor === "" || HORA.test(valor), "La hora debe estar entre 00:00 y 23:59")
     .transform((valor) => (valor === "" ? null : valor)),
   prioridad: tareaPrioridadSchema.default("media"),
 });
 
 export type CrearTareaInput = z.infer<typeof crearTareaInputSchema>;
+
+// --- Formulario de editar (PUT /tareas/{id}: reemplaza la tarea completa) ---
+export const editarTareaInputSchema = crearTareaInputSchema.extend({
+  tarea_id: z.coerce.number().int().positive("Tarea inválida"),
+  // Viaja en un input oculto: "" = personal, "12" = del grupo 12. Se reenvía tal cual.
+  grupo_id: z
+    .string()
+    .transform((valor) => (valor === "" ? null : Number(valor)))
+    .pipe(z.number().int().positive().nullable()),
+  // Al editar, la prioridad ya existe: es obligatoria (sin default)
+  prioridad: tareaPrioridadSchema,
+});
+
+export type EditarTareaInput = z.infer<typeof editarTareaInputSchema>;
 
 // --- Cambiar estado (botones Empezar / Completar) ---
 export const cambiarEstadoInputSchema = z.object({
