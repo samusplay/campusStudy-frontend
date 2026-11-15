@@ -1,12 +1,11 @@
 "use client";
 
+import type { Tarea } from "@/src/types/calendario";
+import { fechaConDia } from "@/src/utils/calendario";
 import { CalendarCheck, X } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "motion/react";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import TareaItem from "./TareaItem";
-import type { Tarea } from "./tipos";
-import { fechaLarga } from "./utils";
-
 interface Props {
   fecha: string; // YYYY-MM-DD
   tareas: Tarea[];
@@ -47,7 +46,7 @@ export default function PanelDia({ fecha, tareas, nombresMaterias, onClose }: Pr
   const pendientes = tareas.filter((t) => t.estado !== "completada").length;
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Tareas del ${fechaLarga(fecha)}`}>
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Tareas del ${fechaConDia(fecha)}`}>
       {/* Fondo */}
       <motion.button
         type="button"
@@ -73,7 +72,7 @@ export default function PanelDia({ fecha, tareas, nombresMaterias, onClose }: Pr
         <header className="flex items-start justify-between gap-4 border-b border-cream/10 p-6">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber">Entregas del día</p>
-            <h3 className="mt-2 font-display text-2xl font-bold leading-tight">{fechaLarga(fecha)}</h3>
+            <h3 className="mt-2 font-display text-2xl font-bold leading-tight">{fechaConDia(fecha)}</h3>
             <p className="mt-1 text-sm text-cream/60">
               {tareas.length === 0
                 ? "Sin tareas"

@@ -1,4 +1,4 @@
-import type { Tarea } from "./tipos";
+import type { Tarea } from "@/src/types/calendario";
 
 export const MESES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -49,7 +49,7 @@ export function agruparPorFecha(tareas: Tarea[]): Record<string, Tarea[]> {
   return mapa;
 }
 
-export function fechaLarga(iso: string): string {
+export function  fechaConDia(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   const dia = DIAS_LARGOS[new Date(y, m - 1, d).getDay()];
   return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${d} de ${MESES[m - 1].toLowerCase()} de ${y}`;

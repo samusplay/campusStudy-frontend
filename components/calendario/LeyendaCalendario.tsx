@@ -1,4 +1,4 @@
-import { ESTADOS, PRIORIDADES } from "./config";
+import { ESTADOS, PRIORIDADES } from "@/src/config/tareas";
 
 export default function LeyendaCalendario() {
   return (

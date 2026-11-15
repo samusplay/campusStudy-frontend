@@ -1,5 +1,5 @@
-import { estadoInfo, prioridadInfo } from "./config";
-import type { Tarea } from "./tipos";
+import { estadoInfo, prioridadInfo } from "@/src/config/tareas";
+import type { Tarea } from "@/src/types/calendario";
 
 interface Props {
   tarea: Tarea;

@@ -1,10 +1,9 @@
 "use client";
 
+import { estadoInfo } from "@/src/config/tareas";
+import type { Tarea } from "@/src/types/calendario";
+import type { CeldaDia } from "@/src/utils/calendario";
 import { motion, useReducedMotion } from "motion/react";
-import { estadoInfo } from "./config";
-import type { Tarea } from "./tipos";
-import type { CeldaDia } from "./utils";
-
 interface Props {
   celda: CeldaDia;
   tareas: Tarea[];

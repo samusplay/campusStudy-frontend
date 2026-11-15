@@ -1,13 +1,13 @@
 "use client";
 
+import type { Tarea } from "@/src/types/calendario";
+import { DIAS_SEMANA, MESES, agruparPorFecha, celdasDelMes } from "@/src/utils/calendario";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
 import { useMemo, useState } from "react";
 import DiaCelda from "./DiaCelda";
 import LeyendaCalendario from "./LeyendaCalendario";
 import PanelDia from "./PanelDia";
-import type { Tarea } from "./tipos";
-import { DIAS_SEMANA, MESES, agruparPorFecha, celdasDelMes } from "./utils";
 
 interface Props {
   tareas: Tarea[];

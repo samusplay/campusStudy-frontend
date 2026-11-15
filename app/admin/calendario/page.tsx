@@ -1,4 +1,5 @@
-import { Calendario } from "@/components/calendario";
+
+import Calendario from "@/components/calendario/Calendario";
 import ErrorMessage from "@/components/ui/error-message";
 import { materiasListadoSchema, type Materia } from "@/src/schemas/materias";
 import { tareasListadoSchema, type Tarea } from "@/src/schemas/tareas";

@@ -1,4 +1,4 @@
-import type { TareaEstado, TareaPrioridad } from "./tipos";
+import type { TareaEstado, TareaPrioridad } from "@/src/types/calendario";
 
 // Las clases van completas (no concatenadas) para que Tailwind las detecte.
 export const ESTADOS: {
