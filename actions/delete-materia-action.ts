@@ -65,6 +65,7 @@ export async function deleteMateriaAction(
   // 404: ya no existe (otra pestaña la borró) → el resultado es el mismo que queríamos
   if (req.status === 404) {
     updateTag("materias");
+    
     return { errors: [], fieldErrors: {}, success: "La materia ya había sido eliminada" };
   }
 

@@ -107,6 +107,7 @@ export async function updateTareaAction(
   // 5. Éxito
   const tarea = tareaSchema.parse(json);
   updateTag("tareas");
+  updateTag("estadisticas");
 
   return { errors: {}, error: "", success: `Tarea "${tarea.titulo}" actualizada` };
 }

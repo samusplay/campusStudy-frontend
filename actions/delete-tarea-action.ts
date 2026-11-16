@@ -48,10 +48,11 @@ export async function deleteTareaAction(
   // 4. 204 No Content: NO hay cuerpo → aquí no se hace req.json()
   if (req.status === 204) {
     updateTag("tareas");
+    updateTag("estadisticas"); // eliminar = cancelar: tareas-service ya actualizó la proyección de estadísticas
     return { error: "", success: titulo ? `Tarea "${titulo}" eliminada` : "Tarea eliminada" };
   }
 
-  // 404: ya no existe → el resultado es el mismo que queríamos
+  // 404: ya no existe → el resultado es el mismo que queríamos (no hubo evento: estadísticas no cambió)
   if (req.status === 404) {
     updateTag("tareas");
     return { error: "", success: "La tarea ya había sido eliminada" };

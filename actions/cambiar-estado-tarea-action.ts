@@ -81,7 +81,9 @@ export async function cambiarEstadoTareaAction(
 
   // 5. Éxito
   const cambio = cambioEstadoSchema.parse(json);
+  
   updateTag("tareas");
+  updateTag("estadisticas"); // tareas-service ya actualizó la proyección de estadísticas
 
   return { error: "", success: MENSAJES[cambio.estado] };
 }

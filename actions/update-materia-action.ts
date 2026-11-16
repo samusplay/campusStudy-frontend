@@ -98,6 +98,7 @@ export async function updateMateriaAction(
 
   // 6. Invalidar el caché: la lista (y el select de grupos) traen el cambio
   updateTag("materias");
+  
 
   return { errors: [], fieldErrors: {}, success: `Materia "${materia.nombre}" actualizada` };
 }
